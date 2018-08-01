@@ -33,6 +33,13 @@ const config = {
           'css-loader'
         ]
       }, {
+        test: /\.styl$/,
+        use: [
+          'style-loader',
+          'css-loader',
+          'stylus-loader'
+        ]
+      }, {
         test: /\.(gif|jpg|jpeg|png|svg)$/,
         use: [
           {
