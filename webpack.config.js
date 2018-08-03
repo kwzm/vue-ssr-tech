@@ -2,10 +2,12 @@ const webpack = require('webpack')
 const path = require('path')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const HTMLPlugin = require('html-webpack-plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin")
+const CleanPlugin = require("clean-webpack-plugin")
 
 const isDev = process.env.NODE_ENV === 'development'
 
-const config = {
+let config = {
   mode: process.env.NODE_ENV, 
   entry: path.join(__dirname, 'src/index.js'),
   output: {
@@ -15,12 +17,15 @@ const config = {
   plugins: [
     new VueLoaderPlugin(),
     new HTMLPlugin(),
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: isDev ? '"development"' : '"production"'
-      }
-    })
   ],
+  optimization: {
+    splitChunks: {
+      chunks: 'all'
+    },
+    runtimeChunk: {
+      name: 'mainfest'
+    }
+  },
   module: {
     rules: [
       {
@@ -30,32 +35,13 @@ const config = {
         test: /\.jsx$/,
         loader: 'babel-loader'
       }, {
-        test: /\.css$/,
-        loader: [
-          'style-loader',
-          'css-loader'
-        ]
-      }, {
-        test: /\.styl/,
-        use: [
-          'style-loader',
-          'css-loader',
-          {
-            loader: 'postcss-loader',
-            options: {
-              sourceMap: true,
-            }
-          },
-          'stylus-loader'
-        ]
-      }, {
         test: /\.(gif|jpg|jpeg|png|svg)$/,
         use: [
           {
             loader: 'url-loader',
             options: {
               limit: 1024,
-              name: '[name-aaa].[ext]'
+              name: '[name].[ext]'
             }
           }
         ]
@@ -65,6 +51,20 @@ const config = {
 }
 
 if (isDev) {
+  config.module.rules.push({
+    test: /\.styl/,
+    use: [
+      'style-loader',
+      'css-loader',
+      {
+        loader: 'postcss-loader',
+        options: {
+          sourceMap: true,
+        }
+      },
+      'stylus-loader'
+    ]
+  })
   config.devtool = '#cheap-module-eval-source-map'
   config.devServer = {
     port: 8000,
@@ -76,6 +76,31 @@ if (isDev) {
   }
   config.plugins.push(
     new webpack.HotModuleReplacementPlugin()
+  )
+} else {
+  config.output.filename = '[name].[chunkhash:8].js'
+  config.module.rules.push({
+    test: /\.styl/,
+    use: [
+      MiniCssExtractPlugin.loader,
+      'css-loader',
+      {
+        loader: 'postcss-loader',
+        options: {
+          sourceMap: true,
+        }
+      },
+      'stylus-loader'
+    ]
+  })
+  config.plugins.push(
+    new MiniCssExtractPlugin({
+      filename: '[name].[hash:8].css',
+      chunkFilename: '[id].[hash:8].css',
+    })
+  )
+  config.plugins.push(
+    new CleanPlugin(['dist'])
   )
 }
 
